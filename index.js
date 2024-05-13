@@ -59,7 +59,6 @@ const run = async () => {
     // jwt
     app.post("/jwt", async (req, res, next) => {
       const user = req.body;
-      console.log("jwt", user);
       const token = jwt.sign(user, process.env.TOKEN_SECRET, {
         expiresIn: "1d",
       });
@@ -76,7 +75,12 @@ const run = async () => {
       const result = await platformServices.find().toArray();
       res.send(result);
     });
-
+    app.get("/volunteer/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await platformServices.findOne(filter);
+      res.send(result);
+    });
     app.post("/volunteers", async (req, res) => {
       const page = parseInt(req.query.page);
       const size = parseInt(req.query.size);
@@ -125,7 +129,7 @@ const run = async () => {
       async (req, res) => {
         const id = req.params.id;
         const post = req.body;
-        console.log(post)
+        console.log(post);
         const filter = { _id: new ObjectId(id) };
         const option = { upsert: true };
         const updatePost = {
@@ -144,6 +148,17 @@ const run = async () => {
           updatePost,
           option
         );
+        res.send(result);
+      }
+    );
+    app.delete(
+      "/user_volunteer_post/:id",
+      logger,
+      verifyToken,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const result = await platformUsers.deleteOne(filter);
         res.send(result);
       }
     );
