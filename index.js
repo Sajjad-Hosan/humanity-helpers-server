@@ -24,6 +24,23 @@ const client = new MongoClient(uri, {
   },
 });
 
+const logger = (req, res, nxt) => {
+  // console.log("log:", req.method, "url:", req.url);
+  nxt();
+};
+const verifyToken = async (req, res, nxt) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "unAuthorized Access!" });
+  }
+  jwt.verify(token, process.env.TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unAuthorized Access!" });
+    }
+    req.user = decoded;
+    nxt();
+  });
+};
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production" ? true : false,
@@ -42,10 +59,11 @@ const run = async () => {
     // jwt
     app.post("/jwt", async (req, res, next) => {
       const user = req.body;
+      console.log("jwt", user);
       const token = jwt.sign(user, process.env.TOKEN_SECRET, {
         expiresIn: "1d",
       });
-      res.cookie("token", token, cookieOption).send({ success: true });
+      res.cookie("token", token, cookieOptions).send({ success: true });
     });
     app.post("/logout", async (req, res) => {
       const user = req.body;
@@ -74,14 +92,22 @@ const run = async () => {
       res.send({ count: count });
     });
     // user data get,put,post,delete methods_____
-    app.get("/user_volunteer_posts", async (req, res) => {
+    app.get("/user_volunteer_post/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await platformUsers.findOne(filter);
+      res.send(result);
+    });
+    app.get("/user_volunteer_posts", logger, verifyToken, async (req, res) => {
       console.log(req.user);
       if (req.query?.email !== req.user?.email) {
         return res.status(401).send({ message: "forbidden access" });
       }
       let query = {};
       if (req.query?.email) {
-        query = { email: req.query.email };
+        query = {
+          organizerEmail: req.query.email,
+        };
       }
       const result = await platformUsers.find(query).toArray();
       res.send(result);
@@ -91,6 +117,37 @@ const run = async () => {
       const result = await platformUsers.insertOne(post);
       res.send(result);
     });
+
+    app.patch(
+      "/user_volunteer_post/:id",
+      logger,
+      verifyToken,
+      async (req, res) => {
+        const id = req.params.id;
+        const post = req.body;
+        console.log(post)
+        const filter = { _id: new ObjectId(id) };
+        const option = { upsert: true };
+        const updatePost = {
+          $set: {
+            thumbnail: post.thumbnail,
+            postTitle: post.postTitle,
+            description: post.description,
+            category: post.category,
+            location: post.location,
+            dateline: post.dateline,
+            volunteerNeed: post.volunteerNeed,
+          },
+        };
+        const result = await platformUsers.updateOne(
+          filter,
+          updatePost,
+          option
+        );
+        res.send(result);
+      }
+    );
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
