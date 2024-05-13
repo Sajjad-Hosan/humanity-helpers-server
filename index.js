@@ -54,6 +54,12 @@ app.get("/volunteer_posts_count", async (req, res) => {
   const count = await platformServices.estimatedDocumentCount();
   res.send({ count: count });
 });
+ // user data get,put,post,delete methods_____
+app.post("user_volunteer_post", async (req, res) => {
+  const post = req.body;
+  const result = await platformUsers.insertOne(post);
+  res.send(result);
+});
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
