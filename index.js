@@ -24,6 +24,12 @@ const client = new MongoClient(uri, {
   },
 });
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production" ? true : false,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+};
+
 const run = async () => {
   try {
     const platformServices = client
@@ -33,7 +39,21 @@ const run = async () => {
     const platformVolunteers = client
       .db("platformdb")
       .collection("platformVolunteers");
-
+    // jwt
+    app.post("/jwt", async (req, res, next) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.TOKEN_SECRET, {
+        expiresIn: "1d",
+      });
+      res.cookie("token", token, cookieOption).send({ success: true });
+    });
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      res
+        .clearCookie("token", { ...cookieOptions, maxAge: 0 })
+        .send({ success: true });
+    });
+    //
     app.get("/volunteers", async (req, res) => {
       const result = await platformServices.find().toArray();
       res.send(result);
@@ -55,7 +75,7 @@ const run = async () => {
     });
     // user data get,put,post,delete methods_____
     app.get("/user_volunteer_posts", async (req, res) => {
-      // console.log('email:',req.query)
+      console.log(req.user);
       if (req.query?.email !== req.user?.email) {
         return res.status(401).send({ message: "forbidden access" });
       }
