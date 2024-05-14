@@ -94,6 +94,26 @@ const run = async () => {
         .toArray();
       res.send(result);
     });
+    app.patch("/volunteer/:id", async (req, res) => {
+      const id = req.params.id;
+      const post = req.body;
+      console.log(post)
+      const filter = { _id: new ObjectId(id) };
+      const option = { upsert: true };
+      const updatePost = {
+        $set: {
+          thumbnail: post.thumbnail,
+          postTitle: post.postTitle,
+          description: post.description,
+          category: post.category,
+          location: post.location,
+          dateline: post.dateline,
+          volunteerNeed: post.volunteerNeed,
+        },
+      };
+      const result = await platformServices.updateOne(filter, updatePost, option);
+      res.send(result);
+    });
     app.get("/volunteer_posts_count", async (req, res) => {
       const count = await platformServices.estimatedDocumentCount();
       res.send({ count: count });
@@ -107,11 +127,11 @@ const run = async () => {
       if (existData?.postId === request.postId) {
         return res.send({ message: "Data already exist!" });
       }
-         await volunteerRequestes.insertOne(request);
-        const update = await platformServices.updateOne(filter, {
-          $inc: { volunteerNeed: -1 },
-        });
-        res.send(update);
+      await volunteerRequestes.insertOne(request);
+      const update = await platformServices.updateOne(filter, {
+        $inc: { volunteerNeed: -1 },
+      });
+      res.send(update);
     });
     //   const id = req.params.id;
     //   const Exfilter = {
