@@ -56,6 +56,9 @@ const run = async () => {
     const platformVolunteers = client
       .db("platformdb")
       .collection("platformVolunteers");
+    const volunteerRequestes = client
+      .db("platformdb")
+      .collection("volunteerRequestes");
     // jwt
     app.post("/jwt", async (req, res, next) => {
       const user = req.body;
@@ -70,7 +73,7 @@ const run = async () => {
         .clearCookie("token", { ...cookieOptions, maxAge: 0 })
         .send({ success: true });
     });
-    //
+    // volunteer default db data
     app.get("/volunteers", async (req, res) => {
       const result = await platformServices.find().toArray();
       res.send(result);
@@ -95,6 +98,44 @@ const run = async () => {
       const count = await platformServices.estimatedDocumentCount();
       res.send({ count: count });
     });
+    // requested userdb data
+    app.post("/volunteer_requested", async (req, res) => {
+      const request = req.body;
+      const exFilter = { postId: request.postId };
+      const filter = { _id: new ObjectId(request.postId) };
+      const existData = await volunteerRequestes.findOne(exFilter);
+      if (existData?.postId === request.postId) {
+        return res.send({ message: "Data already exist!" });
+      }
+         await volunteerRequestes.insertOne(request);
+        const update = await platformServices.updateOne(filter, {
+          $inc: { volunteerNeed: -1 },
+        });
+        res.send(update);
+    });
+    //   const id = req.params.id;
+    //   const Exfilter = {
+    //     postId: id,
+    //   };
+    //   const filter = {
+    //     _id: new ObjectId(id),
+    //   };
+    //   const exist = await volunteerRequestes.findOne(Exfilter);
+    //   console.log(exist.postId);
+    //   if (exist.postId === id) {
+    //     const updatePost = {
+    //       $inc: {
+    //         volunteerNeed: -1,
+    //       },
+    //     };
+    //     const result = await platformServices.updateOne(filter, updatePost);
+    //     res.send(result);
+    //   } else {
+    //     return res
+    //       .status(400)
+    //       .send({ Message: "Volunteer need cannot be decremented further" });
+    //   }
+    // });
     // user data get,put,post,delete methods_____
     app.get("/user_volunteer_post/:id", async (req, res) => {
       const id = req.params.id;
