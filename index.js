@@ -10,7 +10,10 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_KEY}@cluster0
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      // "https://humanityhelpersplatform.web.app",
+    ],
     credentials: true,
   })
 );
@@ -97,7 +100,6 @@ const run = async () => {
     app.patch("/volunteer/:id", async (req, res) => {
       const id = req.params.id;
       const post = req.body;
-      console.log(post)
       const filter = { _id: new ObjectId(id) };
       const option = { upsert: true };
       const updatePost = {
@@ -111,7 +113,11 @@ const run = async () => {
           volunteerNeed: post.volunteerNeed,
         },
       };
-      const result = await platformServices.updateOne(filter, updatePost, option);
+      const result = await platformServices.updateOne(
+        filter,
+        updatePost,
+        option
+      );
       res.send(result);
     });
     app.get("/volunteer_posts_count", async (req, res) => {
@@ -119,18 +125,22 @@ const run = async () => {
       res.send({ count: count });
     });
     // requested userdb data
-    app.post("/volunteer_requested", async (req, res) => {
+    app.post("/volunteer_requested/:id", async (req, res) => {
       const request = req.body;
+      const id = req.params.id;
       const exFilter = { postId: request.postId };
-      const filter = { _id: new ObjectId(request.postId) };
+      const filter = { _id: new ObjectId(id) };
       const existData = await volunteerRequestes.findOne(exFilter);
       if (existData?.postId === request.postId) {
         return res.send({ message: "Data already exist!" });
       }
       await volunteerRequestes.insertOne(request);
-      const update = await platformServices.updateOne(filter, {
-        $inc: { volunteerNeed: -1 },
-      });
+      const update = await platformServices.updateOne(
+        filter,
+        {
+          $inc: { volunteerNeed: -1 },
+        },
+      );
       res.send(update);
     });
     //   const id = req.params.id;
@@ -182,7 +192,6 @@ const run = async () => {
       const result = await platformUsers.insertOne(post);
       res.send(result);
     });
-
     app.patch(
       "/user_volunteer_post/:id",
       logger,
@@ -190,7 +199,6 @@ const run = async () => {
       async (req, res) => {
         const id = req.params.id;
         const post = req.body;
-        console.log(post);
         const filter = { _id: new ObjectId(id) };
         const option = { upsert: true };
         const updatePost = {
