@@ -125,47 +125,52 @@ const run = async () => {
       res.send({ count: count });
     });
     // requested userdb data
-    app.post("/volunteer_requested/:id", async (req, res) => {
-      const request = req.body;
-      const id = req.params.id;
-      const exFilter = { postId: request.postId };
-      const filter = { _id: new ObjectId(id) };
-      const existData = await volunteerRequestes.findOne(exFilter);
-      if (existData?.postId === request.postId) {
-        return res.send({ message: "Data already exist!" });
-      }
-      await volunteerRequestes.insertOne(request);
-      const update = await platformServices.updateOne(
-        filter,
-        {
+    app.post(
+      "/volunteer_requested/:id",
+      logger,
+      verifyToken,
+      async (req, res) => {
+        const request = req.body;
+        const id = req.params.id;
+        const exFilter = { postId: request.postId };
+        const filter = { _id: new ObjectId(id) };
+        const existData = await volunteerRequestes.findOne(exFilter);
+        if (existData?.postId === request.postId) {
+          return res.send({ message: "Data already exist!" });
+        }
+        await volunteerRequestes.insertOne(request);
+        const update = await platformServices.updateOne(filter, {
           $inc: { volunteerNeed: -1 },
-        },
-      );
-      res.send(update);
+        });
+        res.send(update);
+      }
+    );
+    app.get("/                                                                  ", logger, verifyToken, async (req, res) => {
+      if (req.query?.email !== req.user?.email) {
+        return res.status(401).send({ message: "forbidden access" });
+      }
+      let query = {};
+      if (req.query?.email) {
+        query = {
+          organizerEmail: req.query.email,
+        };
+      }
+      const result = await volunteerRequestes.find(query).toArray();
+      res.send(result);
     });
-    //   const id = req.params.id;
-    //   const Exfilter = {
-    //     postId: id,
-    //   };
-    //   const filter = {
-    //     _id: new ObjectId(id),
-    //   };
-    //   const exist = await volunteerRequestes.findOne(Exfilter);
-    //   console.log(exist.postId);
-    //   if (exist.postId === id) {
-    //     const updatePost = {
-    //       $inc: {
-    //         volunteerNeed: -1,
-    //       },
-    //     };
-    //     const result = await platformServices.updateOne(filter, updatePost);
-    //     res.send(result);
-    //   } else {
-    //     return res
-    //       .status(400)
-    //       .send({ Message: "Volunteer need cannot be decremented further" });
-    //   }
-    // });
+    app.delete(
+      "/volunteer_requested/:id",
+      logger,
+      verifyToken,
+      async (req, res) => {
+        const id = req.params.id;
+        console.log(id);
+        const filter = { _id: new ObjectId(id) };
+        const result = await volunteerRequestes.deleteOne(filter);
+        res.send(result);
+      }
+    );
+    //
     // user data get,put,post,delete methods_____
     app.get("/user_volunteer_post/:id", async (req, res) => {
       const id = req.params.id;
@@ -174,7 +179,6 @@ const run = async () => {
       res.send(result);
     });
     app.get("/user_volunteer_posts", logger, verifyToken, async (req, res) => {
-      console.log(req.user);
       if (req.query?.email !== req.user?.email) {
         return res.status(401).send({ message: "forbidden access" });
       }
@@ -187,7 +191,7 @@ const run = async () => {
       const result = await platformUsers.find(query).toArray();
       res.send(result);
     });
-    app.post("/user_volunteer_post", async (req, res) => {
+    app.post("/user_volunteer_post", logger, verifyToken, async (req, res) => {
       const post = req.body;
       const result = await platformUsers.insertOne(post);
       res.send(result);
