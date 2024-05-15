@@ -12,7 +12,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      // "https://humanityhelpersplatform.web.app",
+      "https://humanityhelpersplatform.web.app",
+      "humanityhelpersplatform.firebaseapp.com",
     ],
     credentials: true,
   })
@@ -145,19 +146,24 @@ const run = async () => {
         res.send(update);
       }
     );
-    app.get("/                                                                  ", logger, verifyToken, async (req, res) => {
-      if (req.query?.email !== req.user?.email) {
-        return res.status(401).send({ message: "forbidden access" });
+    app.get(
+      "/                                                                  ",
+      logger,
+      verifyToken,
+      async (req, res) => {
+        if (req.query?.email !== req.user?.email) {
+          return res.status(401).send({ message: "forbidden access" });
+        }
+        let query = {};
+        if (req.query?.email) {
+          query = {
+            organizerEmail: req.query.email,
+          };
+        }
+        const result = await volunteerRequestes.find(query).toArray();
+        res.send(result);
       }
-      let query = {};
-      if (req.query?.email) {
-        query = {
-          organizerEmail: req.query.email,
-        };
-      }
-      const result = await volunteerRequestes.find(query).toArray();
-      res.send(result);
-    });
+    );
     app.delete(
       "/volunteer_requested/:id",
       logger,
